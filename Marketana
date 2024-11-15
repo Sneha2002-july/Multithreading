@@ -1,0 +1,47 @@
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
+import java.util.Map;
+
+public class MarketAnalysis {
+    private static final ThreadGroup marketAnalysisGroup = new ThreadGroup("Market Analysis");
+    private static final ForkJoinPool forkJoinPool = new ForkJoinPool();
+
+    public static void performMarketAnalysis() {
+        new Thread(marketAnalysisGroup, () -> {
+            // Initialize a ForkJoinTask to analyze each stock in parallel
+            StockAnalysisTask task = new StockAnalysisTask(StockData.getAllStockPrices());
+            forkJoinPool.invoke(task);
+        }).start();
+    }
+
+    // Inner class for Fork/Join task to analyze stock prices
+    private static class StockAnalysisTask extends RecursiveAction {
+        private static final int THRESHOLD = 1; // Threshold for task splitting
+        private final Map<String, Double> stockPrices;
+
+        public StockAnalysisTask(Map<String, Double> stockPrices) {
+            this.stockPrices = stockPrices;
+        }
+
+        @Override
+        protected void compute() {
+            if (stockPrices.size() <= THRESHOLD) {
+                // Perform analysis on the stock prices
+                stockPrices.forEach((stock, price) -> {
+                    System.out.println("Analyzing stock " + stock + " with price " + price);
+                });
+            } else {
+                // Split task for parallel analysis
+                int mid = stockPrices.size() / 2;
+                Map<String, Double> firstHalf = stockPrices.entrySet().stream()
+                    .limit(mid)
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                Map<String, Double> secondHalf = stockPrices.entrySet().stream()
+                    .skip(mid)
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+                invokeAll(new StockAnalysisTask(firstHalf), new StockAnalysisTask(secondHalf));
+            }
+        }
+    }
+}
