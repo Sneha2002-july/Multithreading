@@ -1,0 +1,28 @@
+import java.util.UUID;
+import java.util.concurrent.*;
+
+public class StockTradingPlatform {
+    private static final ExecutorService threadPool = Executors.newCachedThreadPool();
+    private static final ForkJoinPool forkJoinPool = new ForkJoinPool();
+
+    public static void main(String[] args) throws InterruptedException {
+        // Initialize stock prices
+        StockData.initializeStockPrices();
+
+        // Simulate client requests
+        for (int i = 1; i <= 5; i++) {
+            int clientId = i;
+            threadPool.submit(() -> ClientSessionManager.simulateClientSession(clientId));
+        }
+
+        // Simulate real-time stock analytics
+        forkJoinPool.submit(() -> MarketAnalysis.performMarketAnalysis());
+        forkJoinPool.shutdown();
+
+        // Allow the simulation to run, then stop "Sell Orders" in case of a market crash
+        Thread.sleep(5000);
+        System.out.println("Market crash detected! Terminating all 'Sell Orders'.");
+        SellOrderHandler.terminateSellOrders();
+        threadPool.shutdown();
+    }
+}
