@@ -1,0 +1,49 @@
+public class BuyOrderHandler {
+    private static final ThreadGroup buyOrderGroup = new ThreadGroup("Buy Orders");
+    private static final ReentrantLock accountLock = new ReentrantLock();
+
+    public static void handleBuyOrder(String stock, int quantity, Map<String, Object> sessionData) {
+        new Thread(buyOrderGroup, () -> {
+            try {
+                accountLock.lock();
+                double price = StockData.getStockPrice(stock);
+                double totalCost = price * quantity;
+                double balance = (double) sessionData.get("accountBalance");
+
+                if (balance >= totalCost) {
+                    sessionData.put("accountBalance", balance - totalCost);
+                    System.out.println(sessionData.get("clientName") + " bought " + quantity + " shares of " + stock);
+                } else {
+                    System.out.println(sessionData.get("clientName") + " has insufficient funds to buy " + stock);
+                }
+            } finally {
+                accountLock.unlock();
+            }
+        }).start();
+    }
+}
+
+public class SellOrderHandler {
+    private static final ThreadGroup sellOrderGroup = new ThreadGroup("Sell Orders");
+    private static final ReentrantLock accountLock = new ReentrantLock();
+
+    public static void handleSellOrder(String stock, int quantity, Map<String, Object> sessionData) {
+        new Thread(sellOrderGroup, () -> {
+            try {
+                accountLock.lock();
+                double price = StockData.getStockPrice(stock);
+                double totalRevenue = price * quantity;
+                double balance = (double) sessionData.get("accountBalance");
+                sessionData.put("accountBalance", balance + totalRevenue);
+
+                System.out.println(sessionData.get("clientName") + " sold " + quantity + " shares of " + stock);
+            } finally {
+                accountLock.unlock();
+            }
+        }).start();
+    }
+
+    public static void terminateSellOrders() {
+        sellOrderGroup.interrupt();
+    }
+}
