@@ -1,0 +1,19 @@
+import java.util.concurrent.RecursiveAction;
+
+public class MarketAnalysis {
+    private static final ThreadGroup marketAnalysisGroup = new ThreadGroup("Market Analysis");
+
+    public static void performMarketAnalysis() {
+        new Thread(marketAnalysisGroup, () -> {
+            ForkJoinTask<Void> task = new RecursiveAction() {
+                @Override
+                protected void compute() {
+                    StockData.initializeStockPrices().forEach((stock, price) -> {
+                        System.out.println("Analyzing stock " + stock + " with price " + price);
+                    });
+                }
+            };
+            task.invoke();
+        }).start();
+    }
+}
