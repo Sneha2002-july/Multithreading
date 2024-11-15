@@ -1,0 +1,42 @@
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.*;
+
+public class StockData {
+    private static final Map<String, Double> stockPrices = new HashMap<>();
+    private static final ReentrantLock stockPriceLock = new ReentrantLock();
+    private static final ExecutorService threadPool = Executors.newCachedThreadPool();
+
+    public static void initializeStockPrices() {
+        stockPrices.put("AAPL", 150.0);
+        stockPrices.put("GOOG", 2800.0);
+        stockPrices.put("TSLA", 700.0);
+    }
+
+    public static double getStockPrice(String stock) {
+        stockPriceLock.lock();
+        try {
+            return stockPrices.getOrDefault(stock, 0.0);
+        } finally {
+            stockPriceLock.unlock();
+        }
+    }
+
+    public static void viewStockPrice(String stock, Map<String, Object> sessionData) {
+        Callable<Double> priceTask = () -> {
+            stockPriceLock.lock();
+            try {
+                return stockPrices.get(stock);
+            } finally {
+                stockPriceLock.unlock();
+            }
+        };
+
+        Future<Double> future = threadPool.submit(priceTask);
+        try {
+            System.out.println(sessionData.get("clientName") + " viewed " + stock + " price: " + future.get());
+        } catch (InterruptedException | ExecutionException e) {
+            System.err.println("Failed to retrieve stock price for " + stock);
+        }
+    }
+}
