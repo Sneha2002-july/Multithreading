@@ -1,0 +1,30 @@
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+
+public class ClientSessionManager {
+    private static final ThreadLocal<Map<String, Object>> clientSession = ThreadLocal.withInitial(HashMap::new);
+
+    public static void simulateClientSession(int clientId) {
+        // Set up ThreadLocal session data
+        clientSession.get().put("sessionId", UUID.randomUUID().toString());
+        clientSession.get().put("clientName", "Client-" + clientId);
+        clientSession.get().put("accountBalance", 10000.0);
+
+        System.out.println("Starting session for " + clientSession.get().get("clientName"));
+
+        // Simulate client actions: Buy/Sell or View Stock Prices
+        Random random = new Random();
+        for (int i = 0; i < 3; i++) {
+            int action = random.nextInt(3);
+            switch (action) {
+                case 0 -> BuyOrderHandler.handleBuyOrder("AAPL", 10, clientSession.get());
+                case 1 -> SellOrderHandler.handleSellOrder("TSLA", 5, clientSession.get());
+                case 2 -> StockData.viewStockPrice("GOOG", clientSession.get());
+            }
+        }
+
+        System.out.println("Ending session for " + clientSession.get().get("clientName"));
+        clientSession.remove();
+    }
+}
